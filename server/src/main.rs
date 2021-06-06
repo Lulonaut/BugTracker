@@ -17,6 +17,7 @@ async fn main() -> std::io::Result<()> {
         App::new()
             .service(hello)
             .service(endpoints::list_all_bugs::list_all_bugs)
+            .service(endpoints::add_bug::add_bug)
     })
     .bind("127.0.0.1:8080")?
     .run()
@@ -34,7 +35,7 @@ fn setup_db() {
 
     //create bug table
     let result = connection.execute(
-        "CREATE TABLE bugs (id INT PRIMARY KEY, author varchar[255], title varchar[255], content TEXT);
+        "CREATE TABLE Bug (id INTEGER PRIMARY KEY, author varchar[255], title varchar[255], content varchar[20000]);
         ",
     );
     if result.is_err() {

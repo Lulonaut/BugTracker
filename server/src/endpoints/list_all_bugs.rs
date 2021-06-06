@@ -1,10 +1,10 @@
 use actix_web::{get, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
-use sqlite::State;
+use serde::Serialize;
+use sqlite::{Connection, State, Statement};
 
 use crate::types::bug::{self, Bug};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize)]
 struct Error {
     success: bool,
     cause: String,
@@ -12,18 +12,27 @@ struct Error {
 
 #[get("/api/buglist")]
 async fn list_all_bugs() -> impl Responder {
-    let bug_list = get_bugs_from_db();
-    let as_string = serde_json::to_string(&bug_list).unwrap();
-
-    HttpResponse::Ok()
-        .header("content-type", "application/json")
-        .body(as_string)
+    let bug_list: Vec<Bug> = get_bugs_from_db();
+    let as_string: Result<String, serde_json::Error> = serde_json::to_string(&bug_list);
+    match as_string {
+        Ok(_) => {
+            let response: String =
+                format!("{{\"success\": true, \"data\": {}}}", as_string.unwrap());
+            HttpResponse::Ok()
+                .header("content-type", "application/json")
+                .body(response)
+        }
+        Err(err) => HttpResponse::InternalServerError().json(Error {
+            success: false,
+            cause: err.to_string(),
+        }),
+    }
 }
 
 fn get_bugs_from_db() -> Vec<bug::Bug> {
     let mut bugs: Vec<bug::Bug> = Vec::new();
-    let connection = sqlite::open("data.db").unwrap();
-    let mut result = connection.prepare("SELECT * FROM bugs").unwrap();
+    let connection: Connection = sqlite::open("data.db").unwrap();
+    let mut result: Statement = connection.prepare("SELECT * FROM Bug").unwrap();
 
     while let State::Row = result.next().unwrap() {
         bugs.push(Bug {
