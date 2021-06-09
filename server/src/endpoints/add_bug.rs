@@ -44,6 +44,7 @@ async fn add_bug(form: actix_web::web::Form<FormData>) -> impl Responder {
         }),
     }
 }
+
 fn add_bug_to_db(bug: Bug) -> Result<i64, sqlite::Error> {
     let connection: Connection = sqlite::open("data.db").unwrap();
     let result = connection.execute(format!(
