@@ -1,4 +1,5 @@
 use crate::types::bug::Bug;
+use crate::utils::check_auth;
 use actix_web::{post, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use sqlite::{Connection, Statement};
@@ -17,14 +18,21 @@ struct ResponseSuccess {
 
 #[derive(Deserialize, Clone)]
 struct FormData {
-    author: String,
     title: String,
     content: String,
+    auth_token: String,
 }
 
 #[post("/api/add_bug")]
 async fn add_bug(form: actix_web::web::Form<FormData>) -> impl Responder {
-    if form.author.is_empty() || form.title.is_empty() || form.content.is_empty() {
+    let author = check_auth(form.clone().auth_token);
+    if author.is_none() {
+        return HttpResponse::Unauthorized().json(ResponseError {
+            success: false,
+            cause: "Invalid Session".to_string(),
+        });
+    }
+    if form.title.is_empty() || form.content.is_empty() {
         return HttpResponse::BadRequest().json(ResponseError {
             success: false,
             cause: "One or more fields empty".to_string(),
@@ -32,7 +40,7 @@ async fn add_bug(form: actix_web::web::Form<FormData>) -> impl Responder {
     }
     let result = add_bug_to_db(Bug {
         id: 0,
-        author: form.clone().author,
+        author: author.unwrap(),
         title: form.clone().title,
         content: form.clone().content,
     });

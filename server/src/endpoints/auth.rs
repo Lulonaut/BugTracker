@@ -113,6 +113,18 @@ fn check_login(to_login: Info) -> LoginDatabaseResponse {
         }
     }
 }
+fn save_token_to_db(username: String, token: String) {
+    let connection: Connection = sqlite::open("data.db").unwrap();
+
+    let output = connection.execute(format!(
+        "UPDATE User SET current_token = '{}' WHERE username = '{}';
+    ",
+        token, username
+    ));
+    if output.is_err() {
+        println!("DB Error: {}", output.err().unwrap().message.unwrap());
+    }
+}
 
 fn register_to_db(to_register: Info) -> RegisterDatabaseResponse {
     //check if username is already taken
@@ -125,7 +137,7 @@ fn register_to_db(to_register: Info) -> RegisterDatabaseResponse {
         };
     }
     //hash password
-    let hashed_password = hash(to_register.password);
+    let hashed_password = hash(to_register.clone().password);
 
     let output = connection.execute(format!(
         "INSERT INTO User (username, hashed_password) VALUES ('{}', '{}');
@@ -139,7 +151,10 @@ fn register_to_db(to_register: Info) -> RegisterDatabaseResponse {
             message: Some("DBError".to_string()),
         };
     }
-
+    save_token_to_db(
+        to_register.clone().username,
+        generate_token(to_register.username),
+    );
     RegisterDatabaseResponse {
         success: true,
         message: None,

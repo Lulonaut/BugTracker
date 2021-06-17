@@ -1,5 +1,6 @@
+use crate::utils::check_auth;
 use actix_web::{get, HttpResponse, Responder};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use sqlite::{Connection, State, Statement};
 
 use crate::types::bug::{self, Bug};
@@ -10,8 +11,27 @@ struct Error {
     cause: String,
 }
 
+#[derive(Deserialize, Clone)]
+struct FormData {
+    auth_token: String,
+}
+
+#[derive(Serialize)]
+struct ResponseError {
+    success: bool,
+    cause: String,
+}
+
 #[get("/api/buglist")]
-async fn list_all_bugs() -> impl Responder {
+async fn list_all_bugs(form: actix_web::web::Form<FormData>) -> impl Responder {
+    let username = check_auth(form.clone().auth_token);
+    if username.is_none() {
+        return HttpResponse::Unauthorized().json(ResponseError {
+            success: false,
+            cause: "Invalid Session".to_string(),
+        });
+    }
+
     let bug_list: Vec<Bug> = get_bugs_from_db();
     let as_string: Result<String, serde_json::Error> = serde_json::to_string(&bug_list);
     match as_string {

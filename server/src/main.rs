@@ -54,7 +54,7 @@ fn setup_db() {
 
     //create user table
     let result = connection.execute(
-        "CREATE TABLE User (id INTEGER PRIMARY KEY, username varchar[255], hashed_password varchar, current_token varchar, displayname varchar[255]);"
+        "CREATE TABLE User (id INTEGER PRIMARY KEY, username varchar[255] NOT NULL UNIQUE, hashed_password varchar, current_token varchar UNIQUE, displayname varchar[255]);"
     );
     if result.is_err() {
         let err = result.err().unwrap().message.unwrap();
