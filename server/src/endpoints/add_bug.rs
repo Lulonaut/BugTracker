@@ -1,6 +1,6 @@
 use crate::types::bug::Bug;
-use crate::utils::check_auth;
-use actix_web::{post, HttpResponse, Responder};
+use crate::utils::check_auth_header;
+use actix_web::{post, HttpRequest, HttpResponse, Responder};
 use serde::{Deserialize, Serialize};
 use sqlite::{Connection, Statement};
 
@@ -20,12 +20,12 @@ struct ResponseSuccess {
 struct FormData {
     title: String,
     content: String,
-    auth_token: String,
 }
 
 #[post("/api/add_bug")]
-async fn add_bug(form: actix_web::web::Form<FormData>) -> impl Responder {
-    let author = check_auth(form.clone().auth_token);
+async fn add_bug(form: actix_web::web::Form<FormData>, req: HttpRequest) -> impl Responder {
+    let token = req.headers().get("Authorization");
+    let author = check_auth_header(token);
     if author.is_none() {
         return HttpResponse::Unauthorized().json(ResponseError {
             success: false,

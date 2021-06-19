@@ -1,6 +1,6 @@
-use crate::utils::check_auth;
-use actix_web::{get, HttpResponse, Responder};
-use serde::{Deserialize, Serialize};
+use crate::utils::check_auth_header;
+use actix_web::{get, HttpRequest, HttpResponse, Responder};
+use serde::Serialize;
 use sqlite::{Connection, State, Statement};
 
 use crate::types::bug::{self, Bug};
@@ -11,11 +11,6 @@ struct Error {
     cause: String,
 }
 
-#[derive(Deserialize, Clone)]
-struct FormData {
-    auth_token: String,
-}
-
 #[derive(Serialize)]
 struct ResponseError {
     success: bool,
@@ -23,8 +18,9 @@ struct ResponseError {
 }
 
 #[get("/api/buglist")]
-async fn list_all_bugs(form: actix_web::web::Form<FormData>) -> impl Responder {
-    let username = check_auth(form.clone().auth_token);
+async fn list_all_bugs(req: HttpRequest) -> impl Responder {
+    let token = req.headers().get("Authorization");
+    let username = check_auth_header(token);
     if username.is_none() {
         return HttpResponse::Unauthorized().json(ResponseError {
             success: false,
