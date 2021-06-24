@@ -1,3 +1,4 @@
+use actix_cors::Cors;
 use actix_web::{App, HttpServer};
 use dotenv::dotenv;
 use lazy_static::lazy_static;
@@ -15,8 +16,12 @@ lazy_static! {
 async fn main() -> std::io::Result<()> {
     dotenv().expect(".env Error");
     setup_db();
+
     HttpServer::new(|| {
+        let cors = Cors::permissive();
+
         App::new()
+            .wrap(cors)
             .service(endpoints::list_all_bugs::list_all_bugs)
             .service(endpoints::add_bug::add_bug)
             .service(endpoints::auth::register)
